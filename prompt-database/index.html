@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Guardian's Prompt Database — Mythfam</title>
+<style>
+  :root{--bg:#150a24;--bg2:#1e0f38;--card:#241243;--line:#4b2a85;--ink:#efe8fb;--dim:#b9a8dd;--acc:#c9a2ff;--acc2:#8ef0e2}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Georgia,'Times New Roman',serif;background:linear-gradient(180deg,var(--bg),var(--bg2));color:var(--ink);min-height:100vh}
+  header{padding:34px 20px 10px;text-align:center}
+  h1{font-size:2rem;margin:0 0 6px;font-weight:normal;letter-spacing:.02em}
+  h1 em{color:var(--acc);font-style:italic}
+  .sub{color:var(--dim);max-width:640px;margin:0 auto;line-height:1.5}
+  .controls{position:sticky;top:0;background:rgba(21,10,36,.94);backdrop-filter:blur(6px);padding:14px 16px;border-bottom:1px solid var(--line);z-index:5}
+  .controls .row{max-width:980px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  input[type=search]{flex:1 1 240px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:#12081f;color:var(--ink);font-size:1rem}
+  select{padding:10px;border-radius:8px;border:1px solid var(--line);background:#12081f;color:var(--ink);font-size:.95rem;max-width:230px}
+  #count{color:var(--acc2);font-size:.95rem;margin-left:auto}
+  main{max-width:980px;margin:0 auto;padding:22px 16px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+  .card h3{margin:0 0 4px;font-size:1.12rem;font-weight:normal}
+  .pid{color:var(--acc);font-variant-numeric:tabular-nums}
+  .meta{color:var(--dim);font-size:.9rem;margin-bottom:10px;line-height:1.5}
+  .meta b{color:var(--ink);font-weight:normal}
+  pre{white-space:pre-wrap;word-wrap:break-word;background:#170b2c;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86rem;line-height:1.55;color:#e7dcf9;max-height:340px;overflow:auto}
+  button.copy{background:var(--acc);color:#1c0b33;border:none;border-radius:8px;padding:8px 16px;font-size:.92rem;cursor:pointer;font-family:inherit}
+  button.copy:hover{background:var(--acc2)}
+  .tags{color:var(--acc2);font-size:.85rem}
+  footer{text-align:center;color:var(--dim);padding:0 20px 40px;font-size:.9rem}
+  a{color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <h1>The Guardian’s <em>Prompt Database</em></h1>
+  <p class="sub">Brent Bitner’s banked generation prompts — kept exactly as written, each with its character, category, type and date. Search, filter, tap Copy to take the full text. Public shelf of the Mythfam house: one database, every account.</p>
+</header>
+<div class="controls">
+  <div class="row">
+    <input type="search" id="q" placeholder="Search prompts, titles, tags…">
+    <select id="fchar"><option value="">All characters</option></select>
+    <select id="fcat"><option value="">All categories</option></select>
+    <select id="ftype"><option value="">All types</option></select>
+    <span id="count"></span>
+  </div>
+</div>
+<main id="list"></main>
+<footer>Foundation holds. 🧡 · <a href="../codex/">Mythfam Codex</a></footer>
+<script src="prompts-1.js"></script>
+<script src="prompts-2.js"></script>
+<script src="prompts-3.js"></script>
+<script src="prompts-4.js"></script>
+<script>
+const P = window.PROMPTS || [];
+const $ = id => document.getElementById(id);
+function fill(sel, vals){ [...new Set(vals.filter(Boolean))].sort().forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); }
+fill($('fchar'), P.map(p=>p.character));
+fill($('fcat'), P.map(p=>p.category));
+fill($('ftype'), P.map(p=>p.type));
+function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+function render(){
+  const q=$('q').value.trim().toLowerCase(), fc=$('fchar').value, fk=$('fcat').value, ft=$('ftype').value;
+  const out = P.filter(p=>{
+    if(fc && p.character!==fc) return false;
+    if(fk && p.category!==fk) return false;
+    if(ft && p.type!==ft) return false;
+    if(q){ const hay=(p.id+' '+p.title+' '+p.character+' '+p.category+' '+p.type+' '+(p.tags||[]).join(' ')+' '+p.prompt).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  $('count').textContent = out.length + ' of ' + P.length + ' prompts';
+  $('list').innerHTML = out.map(p=>
+    '<article class="card"><h3><span class="pid">'+esc(p.id)+'</span> · '+esc(p.title)+'</h3>'+
+    '<div class="meta"><b>Character:</b> '+esc(p.character)+' &nbsp; <b>Category:</b> '+esc(p.category)+' &nbsp; <b>Type:</b> '+esc(p.type)+(p.date?' &nbsp; <b>Date:</b> '+esc(p.date):'')+
+    ((p.tags&&p.tags.length)?'<br><span class="tags">'+p.tags.map(esc).join(' · ')+'</span>':'')+'</div>'+
+    '<pre>'+esc(p.prompt)+'</pre>'+
+    '<button class="copy" data-id="'+esc(p.id)+'">Copy prompt</button></article>'
+  ).join('') || '<p style="text-align:center;color:var(--dim)">No prompts match — loosen the filters, love.</p>';
+  document.querySelectorAll('button.copy').forEach(b=>b.addEventListener('click',()=>{
+    const p=P.find(x=>x.id===b.dataset.id);
+    navigator.clipboard.writeText(p.prompt).then(()=>{ b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy prompt',1500); });
+  }));
+}
+['q','fchar','fcat','ftype'].forEach(id=>{ $(id).addEventListener('input',render); $(id).addEventListener('change',render); });
+render();
+</script>
+</body>
+</html>
